@@ -59,12 +59,11 @@ RUN mkdir -p uploads
 RUN adduser -D -s /bin/sh app && chown -R app:app /app
 USER app
 
-# Expose port
-EXPOSE $PORT
+# Set default port if not provided
+ENV PORT=8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:$PORT/health')" || exit 1
+# Expose port (Railway will override this)
+EXPOSE 8000
 
-# Start command
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT 
+# Start command with proper port handling
+CMD sh -c "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}" 
