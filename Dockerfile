@@ -1,43 +1,52 @@
-# Multi-stage build to reduce final image size
+# Multi-stage build for minimal image size
 FROM python:3.11-slim as builder
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
+# Install only essential build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libffi-dev \
     libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Final stage - minimal runtime image
-FROM python:3.11-slim
-
-# Install only runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libssl3 \
-    libffi8 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Copy Python packages from builder stage
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy and install requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip wheel
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Final runtime stage - ultra minimal
+FROM python:3.11-slim
+
+# Install only runtime essentials
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && rm -rf /var/cache/apt/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Set working directory
 WORKDIR /app
 
-# Copy application code
-COPY . .
+# Copy only application files
+COPY *.py ./
+COPY uploads/.gitkeep ./uploads/
 
 # Create uploads directory
 RUN mkdir -p uploads
+
+# Non-root user for security
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
 
 # Expose port
 EXPOSE $PORT
