@@ -1,0 +1,66 @@
+# Redis RAG Chatbot Configuration
+# Copy this file to .env and fill in your actual values
+
+# ======================
+# REDIS CONFIGURATION
+# ======================
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# ======================
+# OPENAI CONFIGURATION (REQUIRED)
+# ======================
+# Get your API key from: https://platform.openai.com/api-keys
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Available models for embeddings:
+# - text-embedding-ada-002 (recommended)
+# - text-embedding-3-small
+# - text-embedding-3-large
+EMBEDDING_MODEL=text-embedding-ada-002
+
+# Available models for chat:
+# - gpt-3.5-turbo (recommended, faster)
+# - gpt-4 (more capable, slower)
+# - gpt-4-turbo
+CHAT_MODEL=gpt-3.5-turbo
+
+# ======================
+# GOOGLE DRIVE API CONFIGURATION (OPTIONAL)
+# ======================
+# To enable Google Drive integration:
+# 1. Go to https://console.cloud.google.com/
+# 2. Create a new project or select existing
+# 3. Enable Google Drive API
+# 4. Create OAuth 2.0 credentials
+# 5. Add http://localhost:8000/auth/google/callback to redirect URIs
+
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+
+# ======================
+# APPLICATION CONFIGURATION
+# ======================
+APP_HOST=0.0.0.0
+APP_PORT=8000
+DEBUG=True
+
+# Document processing settings
+MAX_CHUNK_SIZE=1000
+CHUNK_OVERLAP=200
+TOP_K_RESULTS=5
+
+# ======================
+# FILE UPLOAD CONFIGURATION
+# ======================
+MAX_FILE_SIZE=50MB
+UPLOAD_DIR=./uploads
+
+# ======================
+# WEBHOOK CONFIGURATION (OPTIONAL)
+# ======================
+# For Google Drive change notifications
+WEBHOOK_SECRET=your_webhook_secret_here 
