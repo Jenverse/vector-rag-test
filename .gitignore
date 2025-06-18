@@ -63,4 +63,7 @@ logs/
 
 # Temporary files
 temp/
-tmp/ 
+tmp/
+
+# Railway
+.railway/ 
