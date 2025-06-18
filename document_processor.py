@@ -8,6 +8,14 @@ from unstructured.cleaners.core import clean_extra_whitespace
 import logging
 from config import settings
 
+# Download required NLTK data
+try:
+    import nltk
+    nltk.download('punkt_tab', quiet=True)
+    nltk.download('averaged_perceptron_tagger_eng', quiet=True)
+except Exception as e:
+    logging.warning(f"Could not download NLTK data: {e}")
+
 logger = logging.getLogger(__name__)
 
 
