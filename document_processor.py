@@ -8,11 +8,36 @@ from unstructured.cleaners.core import clean_extra_whitespace
 import logging
 from config import settings
 
-# Download required NLTK data
+# Download required NLTK data with SSL fix
 try:
     import nltk
-    nltk.download('punkt_tab', quiet=True)
-    nltk.download('averaged_perceptron_tagger_eng', quiet=True)
+    import ssl
+    
+    # Handle SSL certificate issues
+    try:
+        _create_unverified_https_context = ssl._create_unverified_context
+    except AttributeError:
+        pass
+    else:
+        ssl._create_default_https_context = _create_unverified_https_context
+    
+    # Download required data with fallback
+    try:
+        nltk.download('punkt_tab', quiet=True)
+    except:
+        try:
+            nltk.download('punkt', quiet=True)
+        except:
+            pass
+    
+    try:
+        nltk.download('averaged_perceptron_tagger_eng', quiet=True)
+    except:
+        try:
+            nltk.download('averaged_perceptron_tagger', quiet=True)
+        except:
+            pass
+            
 except Exception as e:
     logging.warning(f"Could not download NLTK data: {e}")
 
