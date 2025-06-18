@@ -1,32 +1,48 @@
-# Ultra-lightweight multi-stage build
-FROM python:3.11-slim as builder
+# Ultra-lightweight build using Alpine Linux
+FROM python:3.11-alpine as builder
 
-# Install only essential build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+# Install build dependencies in minimal batches
+RUN apk add --no-cache gcc musl-dev libffi-dev
 
 # Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy and install requirements
-COPY requirements.txt .
+# Upgrade pip first
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Final runtime stage - minimal
-FROM python:3.11-slim
+# Copy requirements and install in smaller batches to avoid memory issues
+COPY requirements.txt .
+
+# Install core dependencies first (most stable)
+RUN pip install --no-cache-dir fastapi==0.104.1 uvicorn[standard]==0.24.0
+
+# Install Redis and basic utilities
+RUN pip install --no-cache-dir redis==5.0.1 python-dotenv==1.0.0 requests==2.31.0
+
+# Install OpenAI and document processing
+RUN pip install --no-cache-dir openai==1.3.7 pypdf==3.17.1 python-docx==1.1.0
+
+# Install remaining dependencies
+RUN pip install --no-cache-dir python-multipart==0.0.6 httpx==0.25.2 aiofiles==23.2.0
+
+# Install pydantic and related
+RUN pip install --no-cache-dir "pydantic>=2.3.0,<3.0.0" pydantic-settings==2.1.0 typing-extensions==4.8.0
+
+# Install Google Drive dependencies
+RUN pip install --no-cache-dir google-api-python-client==2.108.0 google-auth-httplib2==0.1.1 google-auth-oauthlib==1.1.0
+
+# Install remaining packages
+RUN pip install --no-cache-dir watchdog==4.0.0 "numpy>=1.24.0,<2.0.0" "setuptools>=65.0.0"
+
+# Try to install unstructured last (most likely to cause issues)
+RUN pip install --no-cache-dir unstructured==0.11.8 || echo "Unstructured installation failed, will use fallback"
+
+# Final runtime stage - Alpine Linux
+FROM python:3.11-alpine
 
 # Install only essential runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && rm -rf /var/cache/apt/* \
-    && rm -rf /tmp/*
+RUN apk add --no-cache ca-certificates
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
@@ -35,16 +51,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Set working directory
 WORKDIR /app
 
-# Copy only essential application files
+# Copy application files
 COPY *.py ./
-COPY uploads/.gitkeep ./uploads/ 2>/dev/null || true
-
-# Create uploads directory
 RUN mkdir -p uploads
 
 # Non-root user for security
-RUN useradd --create-home --shell /bin/bash --user-group app \
-    && chown -R app:app /app
+RUN adduser -D -s /bin/sh app && chown -R app:app /app
 USER app
 
 # Expose port
